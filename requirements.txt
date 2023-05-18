@@ -1,0 +1,7 @@
+requests
+selenium
+pytest
+geojson
+numpy
+pandas
+loguru
