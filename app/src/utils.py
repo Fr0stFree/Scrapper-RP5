@@ -4,7 +4,6 @@ from typing import Callable, Any
 
 import geojson
 import loguru
-import pandas as pd
 
 from . import exceptions
 
@@ -27,24 +26,27 @@ def cleanup(path: Path) -> None:
         logger.warning(f'File or dir on {path} does not exist.')
 
 
-def task_error_handler(task: Callable) -> Any:
-    try:
-        return task()
+def handle_errors(task: Callable) -> Callable:
+    def inner(*args, **kwargs) -> Any:
+        try:
+            return task(*args, **kwargs)
 
-    except exceptions.ScenarioFailed as exc:
-        logger.error(f'Failed to parse page {exc.url}.\n'
-                     f'An error occurred: {exc}')
-        sys.exit(1)
+        except exceptions.ScenarioFailed as exc:
+            logger.error(f'Failed to parse page {exc.url}.\n'
+                         f'An error occurred: {exc}')
+            sys.exit(1)
 
-    except exceptions.ConvertingFailed as exc:
-        logger.error(f'Failed to convert dataframe.\n'
-                     f'An error occurred: {exc}')
-        sys.exit(1)
+        except exceptions.ConvertingFailed as exc:
+            logger.error(f'Failed to convert dataframe.\n'
+                         f'An error occurred: {exc}')
+            sys.exit(1)
 
-    except exceptions.InvalidStationCSV as exc:
-        logger.error(f'Failed to parse station csv file {exc.path}.\n'
-                     f'An error occurred: {exc}')
+        except exceptions.InvalidStationCSV as exc:
+            logger.error(f'Failed to parse station csv file {exc.path}.\n'
+                         f'An error occurred: {exc}')
 
-    except Exception as exc:
-        logger.error(f'Unhandled exception: {exc}')
-        sys.exit(1)
+        except Exception as exc:
+            logger.error(f'Unhandled exception: {exc}')
+            sys.exit(1)
+
+    return inner

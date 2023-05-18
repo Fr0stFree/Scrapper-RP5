@@ -1,7 +1,3 @@
-from pathlib import Path
-
-import pytest
-
 from app.src import settings
 from app.src.utils import cleanup
 
