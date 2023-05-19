@@ -24,7 +24,7 @@ def main(
                                           datetime_format=extractor.datetime_format)
         for station in stations:
             feature_collection = handle_errors(download_task)(station, extractor, downloader, converter)
-            data.update(feature_collection)
+            data.features.extend(feature_collection.features)
 
     save_geojson(data, save_to=settings.DATA_DIR)
     cleanup(settings.TEMP_DIR)
