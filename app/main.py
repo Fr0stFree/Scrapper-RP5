@@ -1,4 +1,5 @@
 import datetime as dt
+
 from typing_extensions import Annotated
 import geojson
 import typer
@@ -12,12 +13,8 @@ from src.utils import save_geojson, cleanup, handle_errors
 
 
 def main(
-        min_date: Annotated[dt.datetime, typer.Argument(
-            help='Date from which to start downloading data'
-        )] = dt.datetime.now() - dt.timedelta(settings.DATA_AMOUNT_IN_DAYS),
-        max_date: Annotated[dt.datetime, typer.Argument(
-            help='Date to which to download data'
-        )] = dt.datetime.now(),
+    min_date: Annotated[dt.datetime, typer.Argument()] = dt.datetime.now() - dt.timedelta(settings.DATA_AMOUNT_IN_DAYS),
+    max_date: Annotated[dt.datetime, typer.Argument()] = dt.datetime.now(),
 ) -> None:
     data = geojson.FeatureCollection([])
 
@@ -26,8 +23,8 @@ def main(
         converter = CSVToFeatureConverter(datetime_column=extractor.datetime_column,
                                           datetime_format=extractor.datetime_format)
         for station in stations:
-            collection = handle_errors(download_task)(station, extractor, downloader, converter)
-            data.update(collection)
+            feature_collection = handle_errors(download_task)(station, extractor, downloader, converter)
+            data.update(feature_collection)
 
     save_geojson(data, save_to=settings.DATA_DIR)
     cleanup(settings.TEMP_DIR)
