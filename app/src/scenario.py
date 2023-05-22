@@ -2,6 +2,8 @@ import datetime as dt
 from pathlib import Path
 from typing import Type, Self
 
+from selenium.common.exceptions import WebDriverException
+
 from .webdriver.interface import DriverInterface
 from .webdriver.locators import ArchivePage
 from .exceptions import ScenarioFailed
@@ -17,12 +19,18 @@ class RP5ParseScenario:
         self._driver_instance: DriverInterface | None = None
 
     def __enter__(self, *args, **kwargs) -> Self:
-        self._driver_instance = self._Driver(*args, **kwargs)
-        self._driver_instance.start()
+        try:
+            self._driver_instance = self._Driver(*args, **kwargs)
+            self._driver_instance.start()
+        except Exception as exc:
+            raise ScenarioFailed(f'Unable to start webdriver: {self._Driver.__name__}. An error occurred: {exc}')
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        self._driver_instance.finish()
+        try:
+            self._driver_instance.finish()
+        except Exception as exc:
+            raise ScenarioFailed(f'Unable to stop webdriver: {self._Driver.__name__}. An error occurred: {exc}')
 
     def download(self, url: str, save_to: Path) -> Path:
         try:

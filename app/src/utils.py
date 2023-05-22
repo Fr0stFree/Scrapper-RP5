@@ -5,15 +5,16 @@ from typing import Callable, Any
 import geojson
 import loguru
 
-from . import exceptions
-
+from . import exceptions, settings
 
 logger = loguru.logger
+logger.add(sink=settings.DATA_DIR / 'error.log', level='INFO', rotation='1 week')
 
 
 def save_geojson(data: geojson.GeoJSON, save_to: Path, name: str = 'result') -> None:
     with open(save_to / f'{name}.geojson', "w", encoding='utf-8') as f:
         f.write(geojson.dumps(data, indent=4))
+        logger.info(f'GeoJSON saved to "{save_to}"')
 
 
 def cleanup(path: Path) -> None:

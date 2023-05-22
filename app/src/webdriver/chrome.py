@@ -18,7 +18,12 @@ class ChromeDriver(DriverInterface):
 
     def __init__(self) -> None:
         self._options = Options()
+        self._options.headless = True
         self._options.add_argument(f'User-Agent={self.FAKE_USER_AGENT}')
+        self._options.add_argument("window-size=1920x1080")
+        self._options.add_argument('--no-sandbox')
+        self._options.add_argument('--disable-gpu')
+        self._options.add_argument('--disable-dev-shm-usage')
 
     def start(self) -> Self:
         self._session = requests.session()
