@@ -4,7 +4,7 @@ from typing import Final, Literal
 import pandas as pd
 
 from .exceptions import InvalidStationCSV
-
+from .settings import base_logger
 
 class StationCSVExtractor:
     HEADER_ROW: Final[int] = 6
@@ -25,6 +25,7 @@ class StationCSVExtractor:
         is_valid, reason = self._is_valid(df)
         if not is_valid:
             raise InvalidStationCSV(reason, path)
+        base_logger.info('Data extraction has been completed.')
         return df
 
     def _is_valid(self, df: pd.DataFrame) -> tuple[bool, str]:
@@ -33,6 +34,7 @@ class StationCSVExtractor:
 
         datetime_cell = df.iloc[0, self.DATETIME_COLUMN]
         try:
+            base_logger.debug(f'Validating data...')
             pd.to_datetime(datetime_cell, format=self.DATETIME_FORMAT)
         except ValueError:
             return False, f'Invalid datetime format. Expected format: {self.DATETIME_FORMAT}. Got: {datetime_cell}.'

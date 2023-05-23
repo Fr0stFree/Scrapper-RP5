@@ -4,7 +4,7 @@ import geojson
 import numpy as np
 import pandas as pd
 
-from .exceptions import ConvertingFailed
+from .settings import base_logger
 
 
 class CSVToFeatureConverter:
@@ -19,9 +19,11 @@ class CSVToFeatureConverter:
                          **extra_props: str) -> geojson.FeatureCollection:
         df = self._prepare_df(df)
         collection = self._convert_df_to_feature_collection(data=df, coordinates=coordinates, **extra_props)
+        base_logger.info(f'Dataframe has been converted to FeatureCollection successfully.')
         return collection
 
     def _prepare_df(self, df: pd.DataFrame) -> pd.DataFrame:
+        base_logger.debug(f'Clearing dataframe...')
         df.replace(np.nan, None, inplace=True)
         df.rename(columns={df.columns[self._dt_column]: self.DATETIME_COLUMN_NAME}, inplace=True)
         df[self.DATETIME_COLUMN_NAME] = pd.to_datetime(df[self.DATETIME_COLUMN_NAME], format=self._dt_format)
@@ -31,6 +33,7 @@ class CSVToFeatureConverter:
     def _convert_df_to_feature_collection(self, data: pd.DataFrame,
                                           coordinates: tuple[float, float],
                                           **extra_props: str) -> geojson.FeatureCollection:
+        base_logger.debug(f'Converting dataframe to feature collection...')
         collection = geojson.FeatureCollection([])
         for record in data.to_dict(orient='records'):
             record.update(extra_props)

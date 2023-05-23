@@ -2,14 +2,26 @@ import datetime as dt
 from pathlib import Path
 from typing import Type, Self
 
-from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.common.by import By
 
-from .webdriver.interface import DriverInterface
-from .webdriver.locators import ArchivePage
+from .webdriver.interface import DriverInterface, Locator
 from .exceptions import ScenarioFailed
+from .settings import base_logger, error_logger
+
+
+class RP5PageLocators:
+    ARCHIVE_DOWNLOAD_TAB = Locator(By.ID, 'tabSynopDLoad')
+    CSV_FORMAT_RADIO_BUTTON = Locator(By.XPATH, '//label[input/@id="format2"]/span')
+    UTF8_ENCODING_RADIO_BUTTON = Locator(By.XPATH, '//label[input/@id="coding2"]/span')
+    START_DATE_INPUT = Locator(By.ID, 'calender_dload')
+    END_DATE_INPUT = Locator(By.ID, 'calender_dload2')
+    REQUEST_ARCHIVE_BUTTON = Locator(By.CSS_SELECTOR, 'td.download > div.archButton')
+    DOWNLOAD_ARCHIVE_BUTTON = Locator(By.CSS_SELECTOR, 'span#f_result > a')
 
 
 class RP5ParseScenario:
+    CALENDAR_DATE_FORMAT = '%d.%m.%Y'
+
     def __init__(self, driver: Type[DriverInterface],
                  min_date: dt.date,
                  max_date: dt.date) -> None:
@@ -22,26 +34,77 @@ class RP5ParseScenario:
         try:
             self._driver_instance = self._Driver(*args, **kwargs)
             self._driver_instance.start()
+            base_logger.info('Driver has been started.')
         except Exception as exc:
-            raise ScenarioFailed(f'Unable to start webdriver: {self._Driver.__name__}. An error occurred: {exc}')
+            raise ScenarioFailed(f'Unable to start webdriver: {self._Driver.__name__}.\n'
+                                 f'An error occurred: {exc}')
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         try:
             self._driver_instance.finish()
+            base_logger.info('Driver has been stopped.')
         except Exception as exc:
-            raise ScenarioFailed(f'Unable to stop webdriver: {self._Driver.__name__}. An error occurred: {exc}')
+            raise ScenarioFailed(f'Unable to stop webdriver: {self._Driver.__name__}.\n'
+                                 f'An error occurred: {exc}')
 
-    def download(self, url: str, save_to: Path) -> Path:
+    def _goto_page(self, url: str) -> Self:
+        base_logger.debug(f'Opening "{url}"...')
+        self._driver_instance.open(url)
+        return self
+
+    def _goto_archive_tab(self) -> Self:
+        base_logger.debug(f'Going to archive tab...')
+        self._driver_instance.click(RP5PageLocators.ARCHIVE_DOWNLOAD_TAB)
+        return self
+
+    def _select_csv_format(self) -> Self:
+        base_logger.debug(f'Selecting csv format...')
+        self._driver_instance.click(RP5PageLocators.CSV_FORMAT_RADIO_BUTTON)
+        return self
+
+    def _select_utf8_encoding(self) -> Self:
+        base_logger.debug(f'Selecting utf-8 encoding...')
+        self._driver_instance.click(RP5PageLocators.UTF8_ENCODING_RADIO_BUTTON)
+        return self
+
+    def _enter_min_calendar_date(self) -> Self:
+        base_logger.debug(f'Setting up min calendar date to {self._min_date}...')
+        self._driver_instance.input(RP5PageLocators.START_DATE_INPUT,
+                                    value=self._min_date.strftime(self.CALENDAR_DATE_FORMAT))
+        return self
+
+    def _enter_max_calendar_date(self) -> Self:
+        base_logger.debug(f'Setting up max calendar date to {self._max_date}...')
+        self._driver_instance.input(RP5PageLocators.START_DATE_INPUT,
+                                    value=self._max_date.strftime(self.CALENDAR_DATE_FORMAT))
+        return self
+
+    def _request_archive(self) -> Self:
+        base_logger.debug(f'Requesting archive...')
+        self._driver_instance.click(RP5PageLocators.REQUEST_ARCHIVE_BUTTON)
+        return self
+
+    def _download_archive(self, save_to: Path) -> Self:
+        base_logger.debug(f'Downloading archive...')
+        self._driver_instance.download(RP5PageLocators.DOWNLOAD_ARCHIVE_BUTTON, save_to)
+        return self
+
+    def run(self, url: str, save_to: Path) -> Path:
+        """Главная функция для вызова. Запускает процесс парсинга с одной страницы RP-5."""
+        if not isinstance(self._driver_instance, DriverInterface):
+            raise AttributeError('Driver has not been started.')
+
         try:
-            self._driver_instance.open(url)
-            self._driver_instance.goto_archive_tab(ArchivePage.ARCHIVE_DOWNLOAD_TAB)
-            self._driver_instance.select_csv_format(ArchivePage.CSV_FORMAT_RADIO_BUTTON)
-            self._driver_instance.select_utf8_encoding(ArchivePage.UTF8_ENCODING_RADIO_BUTTON)
-            self._driver_instance.enter_min_calendar_date(ArchivePage.START_DATE_INPUT, date=self._min_date)
-            self._driver_instance.enter_max_calendar_date(ArchivePage.END_DATE_INPUT, date=self._max_date)
-            self._driver_instance.request_archive(ArchivePage.REQUEST_ARCHIVE_BUTTON)
-            self._driver_instance.download_archive(ArchivePage.DOWNLOAD_ARCHIVE_BUTTON, save_to)
+            self._goto_page(url) \
+                ._goto_archive_tab() \
+                ._select_csv_format() \
+                ._select_utf8_encoding() \
+                ._enter_min_calendar_date() \
+                ._enter_max_calendar_date() \
+                ._request_archive() \
+                ._download_archive(save_to)
+            base_logger.info(f'Data from "{url}" has been parsed successfully')
             return save_to
         except Exception as exc:
             raise ScenarioFailed(f'Unable to parse page: {url}. An error occurred: {exc}', url)

@@ -1,9 +1,11 @@
-import datetime as dt
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Self
+from typing import Self, NamedTuple
 
-from .locators import Locator
+
+class Locator(NamedTuple):
+    by: str
+    value: str
 
 
 class DriverInterface(ABC):
@@ -21,33 +23,22 @@ class DriverInterface(ABC):
 
     @abstractmethod
     def open(self, url: str) -> None:
+        """Приказывает драйверу перейти по указанной ссылке"""
         pass
 
     @abstractmethod
-    def goto_archive_tab(self, locator: Locator) -> None:
+    def click(self, locator: Locator) -> None:
+        """Приказывает драйверу найти элемент на странице и нажать на него"""
         pass
 
     @abstractmethod
-    def select_csv_format(self, locator: Locator) -> None:
+    def input(self, locator: Locator, value: str) -> None:
+        """Приказывает драйверу найти поле на странице и ввести в него строку"""
         pass
 
     @abstractmethod
-    def select_utf8_encoding(self, locator: Locator) -> None:
+    def download(self, locator: Locator, save_to: Path) -> None:
+        """Приказывает драйверу скачать файл по указанной ссылке в элементе"""
         pass
 
-    @abstractmethod
-    def enter_min_calendar_date(self, locator: Locator, date: dt.date) -> None:
-        pass
-
-    @abstractmethod
-    def enter_max_calendar_date(self, locator: Locator, date: dt.date) -> None:
-        pass
-
-    @abstractmethod
-    def request_archive(self, locator: Locator) -> None:
-        pass
-
-    @abstractmethod
-    def download_archive(self, locator: Locator, save_to: Path) -> None:
-        pass
 
